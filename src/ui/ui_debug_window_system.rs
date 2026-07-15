@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use bevy::{
     input::Input,
     math::{EulerRot, Vec3},
@@ -12,8 +14,10 @@ use rose_game_common::messages::client::ClientMessage;
 use crate::{
     components::PlayerCharacter,
     resources::{AppState, DebugInspector, GameConnection, WorldConnection},
+    save_config,
     systems::{FreeCamera, OrbitCamera},
     ui::UiStateWindows,
+    Config, UserCheat,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -51,6 +55,9 @@ pub struct UiStateDebugWindows {
 #[derive(Default)]
 pub struct UiStateDebugMenu {
     selected_camera_type: DebugCameraType,
+    cheats_manage_open: bool,
+    new_cheat_name: String,
+    new_cheat_command: String,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -67,6 +74,7 @@ pub fn ui_debug_menu_system(
     keyboard: Res<Input<KeyCode>>,
     mut debug_inspector: ResMut<DebugInspector>,
     mut app_state_next: ResMut<NextState<AppState>>,
+    mut config: ResMut<Config>,
 ) {
     if keyboard.pressed(KeyCode::ControlLeft) && keyboard.just_pressed(KeyCode::D) {
         ui_state_debug_windows.debug_ui_open = !ui_state_debug_windows.debug_ui_open;
@@ -180,6 +188,29 @@ pub fn ui_debug_menu_system(
                             .ok();
                     }
                 }
+
+                if !config.cheats.is_empty() {
+                    ui.separator();
+
+                    for cheat in config.cheats.iter() {
+                        if ui.button(&cheat.name).clicked() {
+                            if let Some(game_connection) = game_connection.as_ref() {
+                                game_connection
+                                    .client_message_tx
+                                    .send(ClientMessage::Chat {
+                                        text: cheat.command.clone(),
+                                    })
+                                    .ok();
+                            }
+                        }
+                    }
+                }
+
+                ui.separator();
+                if ui.button("Add/remove...").clicked() {
+                    ui_state_debug_menu.cheats_manage_open = true;
+                    ui.close_menu();
+                }
             });
 
             ui.menu_button("View", |ui| {
@@ -231,4 +262,63 @@ pub fn ui_debug_menu_system(
             });
         });
     });
+
+    let mut cheats_manage_open = ui_state_debug_menu.cheats_manage_open;
+    egui::Window::new("Manage Cheats")
+        .open(&mut cheats_manage_open)
+        .resizable(false)
+        .show(egui_context.ctx_mut(), |ui| {
+            let mut save = false;
+
+            ui.label("Add a new cheat: a name for the menu button, and the chat text it sends (e.g. \"/set con 5000\").");
+            egui::Grid::new("add_cheat_grid")
+                .num_columns(2)
+                .show(ui, |ui| {
+                    ui.label("Name");
+                    ui.text_edit_singleline(&mut ui_state_debug_menu.new_cheat_name);
+                    ui.end_row();
+
+                    ui.label("Command");
+                    ui.text_edit_singleline(&mut ui_state_debug_menu.new_cheat_command);
+                    ui.end_row();
+                });
+
+            let can_add = !ui_state_debug_menu.new_cheat_name.trim().is_empty()
+                && !ui_state_debug_menu.new_cheat_command.trim().is_empty();
+            if ui
+                .add_enabled(can_add, egui::Button::new("Add"))
+                .clicked()
+            {
+                config.cheats.push(UserCheat {
+                    name: ui_state_debug_menu.new_cheat_name.trim().to_string(),
+                    command: ui_state_debug_menu.new_cheat_command.trim().to_string(),
+                });
+                ui_state_debug_menu.new_cheat_name.clear();
+                ui_state_debug_menu.new_cheat_command.clear();
+                save = true;
+            }
+
+            ui.separator();
+
+            let mut remove_index = None;
+            for (index, cheat) in config.cheats.iter().enumerate() {
+                ui.horizontal(|ui| {
+                    ui.label(format!("{} ({})", cheat.name, cheat.command));
+                    if ui.small_button("Remove").clicked() {
+                        remove_index = Some(index);
+                    }
+                });
+            }
+
+            if let Some(remove_index) = remove_index {
+                config.cheats.remove(remove_index);
+                save = true;
+            }
+
+            if save {
+                let path = config.filesystem.config_path.clone();
+                save_config(&config, Path::new(&path));
+            }
+        });
+    ui_state_debug_menu.cheats_manage_open = cheats_manage_open;
 }

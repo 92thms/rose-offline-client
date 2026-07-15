@@ -344,6 +344,13 @@ pub struct Config {
     pub sound: SoundConfig,
     pub interface: InterfaceConfig,
     pub hotkeys: HotkeysConfig,
+    pub cheats: Vec<UserCheat>,
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct UserCheat {
+    pub name: String,
+    pub command: String,
 }
 
 impl Config {
