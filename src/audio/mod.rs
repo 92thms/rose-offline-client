@@ -60,9 +60,14 @@ impl Plugin for OddioPlugin {
         let device = host
             .default_output_device()
             .expect("no output device available");
-        let sample_rate = device.default_output_config().unwrap().sample_rate();
+        let default_config = device.default_output_config().unwrap();
+        let sample_rate = default_config.sample_rate();
+        // Use the device's own channel count instead of assuming stereo -
+        // requesting 2 channels on e.g. a mono USB audio device fails to
+        // build the stream at all.
+        let channels = default_config.channels();
         let config = cpal::StreamConfig {
-            channels: 2,
+            channels,
             sample_rate,
             buffer_size: cpal::BufferSize::Default,
         };
@@ -71,19 +76,43 @@ impl Plugin for OddioPlugin {
         let (scene_handle, scene) = oddio::split(oddio::SpatialScene::new());
         root_mixer_handle.control().play(scene);
 
+        // Scratch buffer used to render stereo audio before downmixing to
+        // the device's actual channel layout, for any non-stereo device.
+        let mut stereo_scratch: Vec<[f32; 2]> = Vec::new();
+        let channels_usize = channels as usize;
+
         let stream = device
             .build_output_stream(
                 &config,
                 move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                    let frames = oddio::frame_stereo(data);
-                    oddio::run(&root_mixer, sample_rate.0, frames);
+                    if channels_usize == 2 {
+                        let frames = oddio::frame_stereo(data);
+                        oddio::run(&root_mixer, sample_rate.0, frames);
+                    } else {
+                        let num_frames = data.len() / channels_usize.max(1);
+                        stereo_scratch.resize(num_frames, [0.0; 2]);
+                        oddio::run(&root_mixer, sample_rate.0, &mut stereo_scratch);
+
+                        for (frame_index, stereo_frame) in stereo_scratch.iter().enumerate() {
+                            let mono = 0.5 * (stereo_frame[0] + stereo_frame[1]);
+                            let base = frame_index * channels_usize;
+                            for channel_sample in &mut data[base..base + channels_usize] {
+                                *channel_sample = mono;
+                            }
+                        }
+                    }
                 },
                 move |err| {
                     eprintln!("{}", err);
                 },
                 None,
             )
-            .unwrap();
+            .unwrap_or_else(|error| {
+                panic!(
+                    "Failed to build audio stream using output device's own {} channel(s): {}",
+                    channels, error
+                )
+            });
         stream.play().unwrap();
 
         app.insert_non_send_resource(stream)
