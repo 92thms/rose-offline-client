@@ -39,6 +39,9 @@ struct LauncherConfig {
     disable_vsync: bool,
     passthrough_terrain_textures: bool,
     disable_sound: bool,
+    fullscreen: bool,
+    width: String,
+    height: String,
     run_mode: RunMode,
     zone_id: String,
 }
@@ -63,6 +66,9 @@ impl Default for LauncherConfig {
             disable_vsync: false,
             passthrough_terrain_textures: false,
             disable_sound: false,
+            fullscreen: false,
+            width: "1920".to_string(),
+            height: "1080".to_string(),
             run_mode: RunMode::Game,
             zone_id: String::new(),
         }
@@ -101,9 +107,12 @@ fn clean_path(path: PathBuf) -> String {
     text.strip_prefix(r"\\?\").unwrap_or(&text).to_string()
 }
 
-/// Best-effort guess at the client exe and data.idx location, used only
-/// the first time the launcher runs (no saved config yet).
+/// Best-effort guess at the client exe, data.idx and loose 3Ddata override
+/// folder location. Runs on first launch (no saved config yet) and can also
+/// be re-triggered from the Options tab.
 fn autodetect_paths(config: &mut LauncherConfig) {
+    let mut search_dir = None;
+
     if let Ok(exe) = std::env::current_exe() {
         if let Some(launcher_dir) = exe.parent() {
             let candidates = [
@@ -114,7 +123,8 @@ fn autodetect_paths(config: &mut LauncherConfig) {
             for candidate in candidates {
                 if let Ok(canonical) = candidate.canonicalize() {
                     if canonical.is_file() {
-                        config.client_path = clean_path(canonical);
+                        config.client_path = clean_path(canonical.clone());
+                        search_dir = canonical.parent().map(|p| p.to_path_buf());
                         break;
                     }
                 }
@@ -122,10 +132,23 @@ fn autodetect_paths(config: &mut LauncherConfig) {
         }
     }
 
-    let data_idx_candidate = PathBuf::from("data.idx");
+    let search_dir = search_dir.unwrap_or_else(|| PathBuf::from("."));
+
+    let data_idx_candidate = search_dir.join("data.idx");
     if data_idx_candidate.is_file() {
         if let Ok(canonical) = data_idx_candidate.canonicalize() {
             config.data_idx = clean_path(canonical);
+        }
+    }
+
+    // The original client ships a handful of UI dialog XMLs (e.g. the login
+    // screen) as loose files next to data.idx rather than inside the VFS
+    // archives - without --data-path pointing at the folder that contains
+    // this "3Ddata" directory, those dialogs silently fail to load.
+    let data_path_candidate = search_dir.join("3Ddata");
+    if data_path_candidate.is_dir() {
+        if let Ok(canonical) = search_dir.canonicalize() {
+            config.data_path = clean_path(canonical);
         }
     }
 }
@@ -188,6 +211,13 @@ impl LauncherApp {
         }
         if c.disable_sound {
             args.push("--disable-sound".to_string());
+        }
+
+        if c.fullscreen {
+            args.push("--fullscreen".to_string());
+        } else {
+            push_opt!("--width", c.width);
+            push_opt!("--height", c.height);
         }
 
         match c.run_mode {
@@ -300,6 +330,19 @@ impl LauncherApp {
             ui.heading("Pfade");
             ui.add_space(4.0);
 
+            if ui.button("Auto-erkennen").clicked() {
+                autodetect_paths(&mut self.config);
+            }
+            ui.label(
+                egui::RichText::new(
+                    "\"Entpackte Daten\" muss auf den Ordner zeigen, der den 3Ddata-Unterordner \
+                     enthält (nicht auf 3Ddata selbst) - sonst fehlen Dialoge wie der Login-Screen.",
+                )
+                .small()
+                .weak(),
+            );
+            ui.add_space(4.0);
+
             egui::Grid::new("paths_grid")
                 .num_columns(3)
                 .spacing([8.0, 8.0])
@@ -399,6 +442,30 @@ impl LauncherApp {
             ui.add_space(16.0);
             ui.heading("Grafik / Sound");
             ui.add_space(4.0);
+
+            ui.checkbox(&mut self.config.fullscreen, "Vollbild");
+            ui.add_enabled_ui(!self.config.fullscreen, |ui| {
+                egui::Grid::new("resolution_grid")
+                    .num_columns(2)
+                    .spacing([8.0, 8.0])
+                    .show(ui, |ui| {
+                        ui.label("Breite:");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.config.width)
+                                .desired_width(80.0),
+                        );
+                        ui.end_row();
+
+                        ui.label("Höhe:");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.config.height)
+                                .desired_width(80.0),
+                        );
+                        ui.end_row();
+                    });
+            });
+
+            ui.add_space(8.0);
             ui.checkbox(&mut self.config.disable_vsync, "V-Sync deaktivieren");
             ui.checkbox(
                 &mut self.config.passthrough_terrain_textures,

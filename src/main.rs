@@ -2,7 +2,8 @@ use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use rose_data::ZoneId;
 use rose_offline_client::{
-    load_config, run_game, run_model_viewer, run_zone_viewer, FilesystemDeviceConfig, SystemsConfig,
+    load_config, run_game, run_model_viewer, run_zone_viewer, FilesystemDeviceConfig,
+    GraphicsModeConfig, SystemsConfig,
 };
 use std::path::{Path, PathBuf};
 
@@ -71,6 +72,23 @@ fn main() {
             clap::Arg::new("disable-vsync")
                 .long("disable-vsync")
                 .help("Disable v-sync to see accurate frame times"),
+        )
+        .arg(
+            clap::Arg::new("width")
+                .long("width")
+                .help("Window width, only used when not --fullscreen")
+                .takes_value(true),
+        )
+        .arg(
+            clap::Arg::new("height")
+                .long("height")
+                .help("Window height, only used when not --fullscreen")
+                .takes_value(true),
+        )
+        .arg(
+            clap::Arg::new("fullscreen")
+                .long("fullscreen")
+                .help("Run in fullscreen mode"),
         )
         .arg(
             clap::Arg::new("ip")
@@ -211,6 +229,21 @@ fn main() {
 
     if matches.is_present("disable-vsync") {
         config.graphics.disable_vsync = true;
+    }
+
+    if matches.is_present("fullscreen") {
+        config.graphics.mode = GraphicsModeConfig::Fullscreen;
+    } else {
+        let width = matches
+            .value_of("width")
+            .and_then(|s| s.parse::<f32>().ok());
+        let height = matches
+            .value_of("height")
+            .and_then(|s| s.parse::<f32>().ok());
+
+        if let (Some(width), Some(height)) = (width, height) {
+            config.graphics.mode = GraphicsModeConfig::Window { width, height };
+        }
     }
 
     if matches.is_present("passthrough-terrain-textures") {
