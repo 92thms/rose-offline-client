@@ -73,7 +73,13 @@ impl Default for UiCharacterCreateState {
             gender: CharacterGender::Male,
             hair_index: 0,
             face_index: 0,
-            startpos_index: 0,
+            // Randomise the default start point / birth island corner
+            // instead of always defaulting to "Brave", the player can still
+            // cycle through all options with the left/right buttons.
+            startpos_index: rand::Rng::gen_range(
+                &mut rand::thread_rng(),
+                0..CREATE_CHARACTER_STARTPOS_LIST.len(),
+            ),
             birthstone_index: 0,
             error_message: String::new(),
         }
@@ -103,6 +109,11 @@ pub fn ui_character_create_system(
         }
 
         ui_state.initial_focus_set = false;
+        // Re-randomise the start point each time this screen is (re-)entered.
+        ui_state.startpos_index = rand::Rng::gen_range(
+            &mut rand::thread_rng(),
+            0..CREATE_CHARACTER_STARTPOS_LIST.len(),
+        );
         return;
     }
 
