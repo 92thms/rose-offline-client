@@ -33,7 +33,7 @@ pub fn ui_status_effects_system(
         return;
     };
 
-    egui::Window::new("Player Status Effects}")
+    egui::Window::new("Player Status Effects")
         .anchor(egui::Align2::LEFT_TOP, [250.0, 40.0])
         .frame(egui::Frame::none())
         .title_bar(false)
