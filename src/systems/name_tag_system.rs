@@ -4,7 +4,7 @@ use crate::{
     components::{
         ClientEntity, ClientEntityName, ModelHeight, NameTag, NameTagEntity,
         NameTagHealthbarBackground, NameTagHealthbarForeground, NameTagName, NameTagTargetMark,
-        NameTagType, PartyInfo, PlayerCharacter,
+        NameTagType, PartyInfo, PlayerCharacter, Vehicle, VehicleModelHeight,
     },
     events::{LoadZoneEvent, PartyEvent},
     render::WorldUiRect,
@@ -21,8 +21,8 @@ use bevy::{
     ecs::query::WorldQuery,
     prelude::{
         Assets, BuildChildren, Bundle, Changed, Color, Commands, ComputedVisibility,
-        DespawnRecursiveExt, Entity, EventReader, GlobalTransform, Image, Query, Res, ResMut,
-        Transform, Vec2, Vec3, Visibility, With, Without,
+        DespawnRecursiveExt, Entity, EventReader, GlobalTransform, Image, Query, RemovedComponents,
+        Res, ResMut, Transform, Vec2, Vec3, Visibility, With, Without,
     },
     render::{
         render_resource::{Extent3d, TextureDimension, TextureFormat},
@@ -58,6 +58,8 @@ pub struct NameTagObjectQuery<'w> {
     npc: Option<&'w Npc>,
     level: Option<&'w Level>,
     team: Option<&'w Team>,
+    vehicle: Option<&'w Vehicle>,
+    vehicle_model_height: Option<&'w VehicleModelHeight>,
 }
 
 #[derive(Bundle, Default)]
@@ -386,6 +388,7 @@ pub fn name_tag_system(
     mut name_tag_cache: ResMut<NameTagCache>,
     query_add: Query<NameTagObjectQuery, Without<NameTagEntity>>,
     query_changed: Query<(Entity, Option<&NameTagEntity>), Changed<ClientEntityName>>,
+    mut removed_vehicles: RemovedComponents<Vehicle>,
     query_player: Query<PlayerQuery, With<PlayerCharacter>>,
     query_nametags: Query<(Entity, &NameTagEntity)>,
     query_window: Query<Entity, With<PrimaryWindow>>,
@@ -446,6 +449,22 @@ pub fn name_tag_system(
         name_tag_cache.pending.remove(&entity);
     }
 
+    // Model height changes when mounting / dismounting a vehicle, so force
+    // the name tag to respawn at the new height on those transitions.
+    // Model height changes when dismounting a vehicle (back to pedestrian
+    // height), so force the name tag to respawn on that transition. The
+    // mount transition is handled in vehicle_model_height_system once the
+    // vehicle's own height has actually been computed.
+    for entity in removed_vehicles.iter() {
+        commands.entity(entity).remove::<VehicleModelHeight>();
+
+        if let Ok((_, name_tag_entity)) = query_nametags.get(entity) {
+            commands.entity(entity).remove::<NameTagEntity>();
+            commands.entity(name_tag_entity.0).despawn_recursive();
+            name_tag_cache.pending.remove(&entity);
+        }
+    }
+
     for object in query_add.iter() {
         let name_tag_type = if let Some(npc) = object.npc {
             if object
@@ -499,6 +518,16 @@ pub fn name_tag_system(
             continue;
         };
 
+        // While driving a vehicle, float the name tag above the vehicle's
+        // model height instead of the (much shorter) pedestrian height.
+        let model_height = if object.vehicle.is_some() {
+            object
+                .vehicle_model_height
+                .map_or(object.model_height.height, |it| it.height)
+        } else {
+            object.model_height.height
+        };
+
         // Spawn name tag entities
         let name_tag_entity = commands
             .spawn((
@@ -516,7 +545,7 @@ pub fn name_tag_system(
                     },
                     transform: Transform::from_translation(Vec3::new(
                         0.0,
-                        object.model_height.height,
+                        model_height,
                         0.0,
                     )),
                     ..default()

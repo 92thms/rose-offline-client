@@ -93,8 +93,9 @@ use systems::{
     pending_skill_effect_system, personal_store_model_add_collider_system,
     personal_store_model_system, player_command_system, projectile_system, quest_trigger_system,
     sound_trigger_system, spawn_effect_system, spawn_projectile_system, status_effect_system,
-    system_func_event_system, update_position_system, use_item_event_system, vehicle_model_system,
-    vehicle_sound_system, visible_status_effects_system, world_connection_system,
+    system_func_event_system, update_position_system, use_item_event_system,
+    vehicle_model_height_system, vehicle_model_system, vehicle_sound_system,
+    visible_status_effects_system, world_connection_system,
     world_time_system, zone_time_system, zone_viewer_enter_system, DebugInspectorPlugin,
 };
 use ui::{
@@ -755,7 +756,11 @@ fn run_client(config: &Config, app_state: AppState, mut systems_config: SystemsC
     // with model destruction but to also be before global transform is calculated.
     app.add_systems(
         PostUpdate,
-        (vehicle_model_system, vehicle_sound_system)
+        (
+            vehicle_model_system,
+            vehicle_model_height_system,
+            vehicle_sound_system,
+        )
             .chain()
             .in_set(GameStages::AfterUpdate),
     );

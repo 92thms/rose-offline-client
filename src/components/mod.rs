@@ -64,7 +64,7 @@ pub use effect::{Effect, EffectMesh, EffectParticle};
 pub use event_object::EventObject;
 pub use facing_direction::FacingDirection;
 pub use item_drop_model::ItemDropModel;
-pub use model_height::ModelHeight;
+pub use model_height::{ModelHeight, VehicleModelHeight};
 pub use name_tag_entity::{
     NameTag, NameTagEntity, NameTagHealthbarBackground, NameTagHealthbarForeground, NameTagName,
     NameTagTargetMark, NameTagType, RemoveNameTagCommand,
