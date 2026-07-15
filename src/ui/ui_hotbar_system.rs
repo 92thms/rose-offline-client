@@ -252,6 +252,25 @@ pub fn ui_hotbar_system(
         None
     };
 
+    // Alt+1/2/3/4 switches between the 4 skillbar pages, as listed in the
+    // game's help text.
+    let switch_to_page = if !egui_context.ctx_mut().wants_keyboard_input() {
+        egui_context.ctx_mut().input_mut(|input| {
+            const ALT_NUMBER_KEYS: [(egui::Modifiers, egui::Key); 4] = [
+                (egui::Modifiers::ALT, egui::Key::Num1),
+                (egui::Modifiers::ALT, egui::Key::Num2),
+                (egui::Modifiers::ALT, egui::Key::Num3),
+                (egui::Modifiers::ALT, egui::Key::Num4),
+            ];
+
+            ALT_NUMBER_KEYS
+                .iter()
+                .position(|(modifiers, key)| input.consume_key(*modifiers, *key))
+        })
+    } else {
+        None
+    };
+
     let mut response_rotate_button = None;
     let mut response_hprev_button = None;
     let mut response_hnext_button = None;
@@ -324,6 +343,12 @@ pub fn ui_hotbar_system(
         });
 
     let previous_page = ui_state_hot_bar.current_page;
+
+    if let Some(page) = switch_to_page {
+        if page < HOTBAR_NUM_PAGES {
+            ui_state_hot_bar.current_page = page;
+        }
+    }
 
     if response_hnext_button.map_or(false, |r| r.clicked())
         || response_vnext_button.map_or(false, |r| r.clicked())
