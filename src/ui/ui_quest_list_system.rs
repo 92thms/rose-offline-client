@@ -1,4 +1,4 @@
-use bevy::prelude::{Assets, EventWriter, Local, Query, Res, ResMut, With};
+use bevy::prelude::{Assets, EventWriter, Events, Local, Query, Res, ResMut, With, World};
 use bevy_egui::{egui, EguiContexts};
 use std::time::Duration;
 
@@ -8,6 +8,7 @@ use rose_game_common::components::QuestState;
 use super::DialogInstance;
 use crate::{
     components::PlayerCharacter,
+    events::{MessageBoxEvent, PlayerCommandEvent},
     resources::{GameData, UiResources, WorldTime},
     ui::{
         tooltips::{PlayerTooltipQuery, PlayerTooltipQueryItem},
@@ -17,7 +18,7 @@ use crate::{
     },
 };
 
-// const IID_BTN_ABANDON: i32 = 50;
+const IID_BTN_DELETE: i32 = 50;
 const IID_BTN_CLOSE: i32 = 10;
 // const IID_BTN_ICONIZE: i32 = 11;
 const IID_BTN_MINIMIZE: i32 = 113;
@@ -91,6 +92,7 @@ pub fn ui_quest_list_system(
     mut egui_context: EguiContexts,
     mut ui_state_windows: ResMut<UiStateWindows>,
     mut ui_sound_events: EventWriter<UiSoundEvent>,
+    mut message_box_events: EventWriter<MessageBoxEvent>,
     query_player: Query<&QuestState, With<PlayerCharacter>>,
     query_player_tooltip: Query<PlayerTooltipQuery, With<PlayerCharacter>>,
     game_data: Res<GameData>,
@@ -130,8 +132,24 @@ pub fn ui_quest_list_system(
     let mut response_close_button = None;
     let mut response_minimise_button = None;
     let mut response_maximise_button = None;
+    let mut response_delete_button = None;
     let is_minimised = ui_state.minimised;
     let current_scroll_index = ui_state.scroll_index;
+    let selected_index = ui_state.selected_index;
+
+    let selected_quest = if ui_state_windows.quest_list_open {
+        player_quest_state
+            .active_quests
+            .iter()
+            .filter(|q| q.is_some())
+            .nth(selected_index as usize)
+            .and_then(|x| x.as_ref())
+    } else {
+        None
+    };
+
+    let selected_quest_data =
+        selected_quest.and_then(|it| game_data.quests.get_quest_data(it.quest_id));
 
     egui::Window::new("Quest List")
         .frame(egui::Frame::none())
@@ -210,22 +228,13 @@ pub fn ui_quest_list_system(
                         (IID_BTN_CLOSE, &mut response_close_button),
                         (IID_BTN_MINIMIZE, &mut response_minimise_button),
                         (IID_BTN_MAXIMIZE, &mut response_maximise_button),
+                        (IID_BTN_DELETE, &mut response_delete_button),
                     ],
                     ..Default::default()
                 },
-                |ui, bindings| {
-                    let selected_quest_index = bindings
-                        .get_zlist_selected_index(IID_ZLIST_QUEST)
-                        .unwrap_or(0);
-
-                    if let Some(selected_quest) = player_quest_state
-                        .active_quests
-                        .iter()
-                        .filter(|q| q.is_some())
-                        .nth(selected_quest_index as usize)
-                        .and_then(|x| x.as_ref())
-                    {
-                        let quest_data = game_data.quests.get_quest_data(selected_quest.quest_id);
+                |ui, _bindings| {
+                    if let Some(selected_quest) = selected_quest {
+                        let quest_data = selected_quest_data;
 
                         let rect_info = if let Some(Widget::Pane(pane)) =
                             dialog.get_widget(IID_PANE_QUESTINFO)
@@ -320,6 +329,36 @@ pub fn ui_quest_list_system(
                 },
             );
         });
+
+    if response_delete_button.map_or(false, |it| it.clicked()) {
+        if let Some(selected_quest_data) = selected_quest_data {
+            let quest_id = selected_quest_data.id;
+
+            let message = game_data
+                .client_strings
+                .quest_delete_confirm(selected_quest_data.name);
+
+            message_box_events.send(MessageBoxEvent::Show {
+                message,
+                modal: false,
+                ok: Some(Box::new(move |commands| {
+                    commands.add(move |world: &mut World| {
+                        let Some(mut player_command_events) =
+                            world.get_resource_mut::<Events<PlayerCommandEvent>>()
+                        else {
+                            return;
+                        };
+
+                        player_command_events.send(PlayerCommandEvent::QuestDelete(
+                            selected_index as usize,
+                            quest_id,
+                        ));
+                    });
+                })),
+                cancel: Some(Box::new(|_| {})),
+            });
+        }
+    }
 
     if response_close_button.map_or(false, |r| r.clicked()) {
         ui_state_windows.quest_list_open = false;

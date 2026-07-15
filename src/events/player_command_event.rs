@@ -25,4 +25,5 @@ pub enum PlayerCommandEvent {
     BankWithdrawItem(usize),
     PickupDropItem(Item, Entity, ItemSlot),
     PickupDropMoney(Money, Entity),
+    QuestDelete(usize, usize),
 }

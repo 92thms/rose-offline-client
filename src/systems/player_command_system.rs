@@ -800,6 +800,14 @@ pub fn player_command_system(
                     }
                 });
             }
+            PlayerCommandEvent::QuestDelete(slot, quest_id) => {
+                if let Some(game_connection) = game_connection.as_ref() {
+                    game_connection
+                        .client_message_tx
+                        .send(ClientMessage::QuestDelete { slot, quest_id })
+                        .ok();
+                }
+            }
         }
     }
 }
