@@ -53,7 +53,7 @@ pub use selected_target::SelectedTarget;
 pub use server_configuration::{AutoLogin, ServerConfiguration};
 pub use server_list::{ServerList, ServerListGameServer, ServerListWorldServer};
 pub use sound_cache::SoundCache;
-pub use sound_config::SoundConfig;
+pub use sound_config::{SoundConfig, SoundVolumeConfig};
 pub use specular_texture::SpecularTexture;
 pub use ui_resources::{
     load_ui_resources, ui_requested_cursor_apply_system, update_ui_resources, UiCursorType,

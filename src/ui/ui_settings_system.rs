@@ -191,6 +191,15 @@ pub fn ui_settings_system(
                             add_category_slider("Other Combat", &mut volume.other_combat);
                             add_category_slider("NPC Sounds", &mut volume.npc_sounds);
 
+                            ui.end_row();
+                            ui.label("");
+                            if ui.button("Reset to Defaults").clicked() {
+                                config.sound.volume = crate::resources::SoundVolumeConfig::default();
+                                gain_changed = true;
+                                save_settings = true;
+                            }
+                            ui.end_row();
+
                             if gain_changed || save_settings {
                                 for (category, mut gain) in query_sounds.iter_mut() {
                                     let target_gain = config.sound.gain(*category);

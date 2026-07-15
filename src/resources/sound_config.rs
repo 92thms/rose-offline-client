@@ -19,7 +19,7 @@ impl Default for SoundVolumeConfig {
     fn default() -> Self {
         Self {
             global: 0.6,
-            background_music: 0.15,
+            background_music: 0.6,
             player_footstep: 0.9,
             player_combat: 1.0,
             other_footstep: 0.5,
