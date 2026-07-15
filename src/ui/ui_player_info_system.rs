@@ -3,13 +3,13 @@ use bevy::{
     prelude::{Assets, Entity, EventWriter, Query, Res, ResMut, With},
 };
 use bevy_egui::{egui, EguiContexts};
-use rose_data::{AmmoIndex, EquipmentIndex, Item, ItemClass};
+use rose_data::{AmmoIndex, EquipmentIndex, Item, ItemClass, VehiclePartIndex};
 use rose_game_common::components::{
     AbilityValues, CharacterInfo, Equipment, ExperiencePoints, HealthPoints, Level, ManaPoints,
 };
 
 use crate::{
-    components::PlayerCharacter,
+    components::{PlayerCharacter, Vehicle},
     resources::{GameData, SelectedTarget, UiResources},
     ui::{
         tooltips::{PlayerTooltipQuery, PlayerTooltipQueryItem},
@@ -38,6 +38,39 @@ pub struct PlayerQuery<'w> {
     mana_points: &'w ManaPoints,
     experience_points: &'w ExperiencePoints,
     equipment: &'w Equipment,
+    vehicle: Option<&'w Vehicle>,
+}
+
+fn add_vehicle_fuel_bar(ui: &mut egui::Ui, pos: egui::Pos2, fraction: f32) {
+    let size = egui::vec2(150.0, 10.0);
+    let pos = ui.min_rect().min + pos.to_vec2();
+
+    ui.allocate_ui_at_rect(egui::Rect::from_min_size(pos, size), |ui| {
+        let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+
+        ui.painter()
+            .rect_filled(rect, 2.0, egui::Color32::from_rgb(40, 40, 40));
+
+        let fraction = fraction.clamp(0.0, 1.0);
+        if fraction > 0.0 {
+            let fill_rect =
+                egui::Rect::from_min_size(rect.min, egui::vec2(size.x * fraction, size.y));
+            let color = if fraction > 0.5 {
+                egui::Color32::from_rgb(122, 200, 255)
+            } else if fraction > 0.2 {
+                egui::Color32::from_rgb(255, 206, 107)
+            } else {
+                egui::Color32::from_rgb(255, 107, 107)
+            };
+            ui.painter().rect_filled(fill_rect, 2.0, color);
+        }
+
+        ui.painter().rect_stroke(
+            rect,
+            2.0,
+            egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(0, 0, 0)),
+        );
+    });
 }
 
 fn add_equipped_weapon_slot(
@@ -201,6 +234,15 @@ pub fn ui_player_info_system(
                         &game_data,
                         &ui_resources,
                     );
+
+                    if player.vehicle.is_some() {
+                        if let Some(engine) =
+                            player.equipment.equipped_vehicle[VehiclePartIndex::Engine].as_ref()
+                        {
+                            let fraction = engine.life as f32 / 1000.0;
+                            add_vehicle_fuel_bar(ui, egui::pos2(15.0, dialog.height + 4.0), fraction);
+                        }
+                    }
                 },
             )
         });
