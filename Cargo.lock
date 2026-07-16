@@ -3486,7 +3486,6 @@ dependencies = [
 [[package]]
 name = "rose-data"
 version = "0.1.0"
-source = "git+https://github.com/exjam/rose-offline?rev=4a648ba720278f69bb8ee6257564175c271e081c#4a648ba720278f69bb8ee6257564175c271e081c"
 dependencies = [
  "arrayvec",
  "bevy",
@@ -3501,7 +3500,6 @@ dependencies = [
 [[package]]
 name = "rose-data-irose"
 version = "0.1.0"
-source = "git+https://github.com/exjam/rose-offline?rev=4a648ba720278f69bb8ee6257564175c271e081c#4a648ba720278f69bb8ee6257564175c271e081c"
 dependencies = [
  "anyhow",
  "arrayvec",
@@ -3517,7 +3515,6 @@ dependencies = [
 [[package]]
 name = "rose-file-readers"
 version = "0.1.0"
-source = "git+https://github.com/exjam/rose-offline?rev=4a648ba720278f69bb8ee6257564175c271e081c#4a648ba720278f69bb8ee6257564175c271e081c"
 dependencies = [
  "aes",
  "anyhow",
@@ -3538,7 +3535,6 @@ dependencies = [
 [[package]]
 name = "rose-game-common"
 version = "0.1.0"
-source = "git+https://github.com/exjam/rose-offline?rev=4a648ba720278f69bb8ee6257564175c271e081c#4a648ba720278f69bb8ee6257564175c271e081c"
 dependencies = [
  "bevy",
  "bitvec",
@@ -3554,7 +3550,6 @@ dependencies = [
 [[package]]
 name = "rose-game-irose"
 version = "0.1.0"
-source = "git+https://github.com/exjam/rose-offline?rev=4a648ba720278f69bb8ee6257564175c271e081c#4a648ba720278f69bb8ee6257564175c271e081c"
 dependencies = [
  "log",
  "rand",
@@ -3567,7 +3562,6 @@ dependencies = [
 [[package]]
 name = "rose-network-common"
 version = "0.1.0"
-source = "git+https://github.com/exjam/rose-offline?rev=4a648ba720278f69bb8ee6257564175c271e081c#4a648ba720278f69bb8ee6257564175c271e081c"
 dependencies = [
  "anyhow",
  "bytes",
@@ -3582,7 +3576,6 @@ dependencies = [
 [[package]]
 name = "rose-network-irose"
 version = "0.1.0"
-source = "git+https://github.com/exjam/rose-offline?rev=4a648ba720278f69bb8ee6257564175c271e081c#4a648ba720278f69bb8ee6257564175c271e081c"
 dependencies = [
  "bevy",
  "bitvec",

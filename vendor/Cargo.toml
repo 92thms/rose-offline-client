@@ -1,0 +1,58 @@
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["James Benton <james.benton2@gmail.com>"]
+
+[workspace]
+resolver = "2"
+members = [
+    "rose-data",
+    "rose-data-irose",
+    "rose-file-readers",
+    "rose-game-common",
+    "rose-game-irose",
+    "rose-network-common",
+    "rose-network-irose",
+]
+
+[workspace.dependencies]
+aes = "0.8.1"
+anyhow = "1.0"
+arrayvec = "0.7"
+async-trait = "0.1"
+bevy = { version = "0.11.3", default-features = false }
+big-brain = { version = "0.18", features = [] }
+bitflags = "2.3"
+bitvec = { version = "1.0", features = ["serde"] }
+bytes = "1.1"
+chrono = "0.4"
+clap = "3.2"
+crossbeam-channel = "0.5"
+ctr = "0.9.1"
+directories = "5.0.1"
+encoding_rs = "0.8"
+enum-map = { version = "2.0", features = ["serde"] }
+flate2 = "1.0"
+hex = "0.4"
+lazy_static = "1.4"
+log = "0.4"
+md5 = "0.7"
+memmap = "0.7"
+modular-bitfield = "0.11"
+num-derive = "0.4"
+num-traits = "0.2"
+rand = "0.8"
+schemars = "0.8"
+scopeguard = "1.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+sha2 = "0.10"
+shellwords = "1.1"
+simplelog = "0.12"
+tempfile = "3.3"
+thiserror = "1.0"
+tokio = { version = "1.17", default-features = false, features = ["rt", "rt-multi-thread", "net", "sync", "macros", "io-util"] }
+
+[patch.crates-io]
+bevy = { git = "https://github.com/exjam/bevy", rev = "b3b09ca110d42b406e7453ccda8394bc1b03440c" }

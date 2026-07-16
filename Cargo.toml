@@ -63,6 +63,15 @@ features = [
   "bevy_gizmos",
 ]
 
+[patch."https://github.com/exjam/rose-offline"]
+rose-data = { path = "vendor/rose-data" }
+rose-data-irose = { path = "vendor/rose-data-irose" }
+rose-file-readers = { path = "vendor/rose-file-readers" }
+rose-game-common = { path = "vendor/rose-game-common" }
+rose-game-irose = { path = "vendor/rose-game-irose" }
+rose-network-common = { path = "vendor/rose-network-common" }
+rose-network-irose = { path = "vendor/rose-network-irose" }
+
 [patch.crates-io]
 bevy = { git = "https://github.com/exjam/bevy", rev = "b3b09ca110d42b406e7453ccda8394bc1b03440c" }
 bevy_egui = { git = "https://github.com/exjam/bevy_egui", rev = "cc94933c647ed4e6cba48a559f70cc69cb2f1708" }

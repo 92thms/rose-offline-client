@@ -1,0 +1,15 @@
+[package]
+name = "titan_extractor"
+version = "0.1.0"
+edition = "2021"
+
+# Standalone dev tool, not part of the client's build/dependency graph.
+# Extracts assets from a TitanROSE data.trf/data.idx pair (hash-only file
+# index, no stored filenames) by testing every path known from a vanilla
+# irose data.idx (which does store real filenames) against the Titan
+# archive's hash table.
+
+[dependencies]
+rose-file-readers = { git = "https://github.com/exjam/rose-offline", rev = "4a648ba720278f69bb8ee6257564175c271e081c" }
+anyhow = "1.0"
+encoding_rs = "0.8"
